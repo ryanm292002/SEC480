@@ -1,8 +1,60 @@
+function 480connect(){
+$config = Get-Content -Path "config.json" | ConvertFrom-Json
+$vcenter = $config.vCenterServer
+
+# Use the vSphere address from the configuration
+
+        # Connect to vCenter server
+Connect-VIServer -Server $vcenter -ErrorAction Stop
+
+}
 function 480banner(){
     $banner = "WELCOME TO RYANMs EZPZ VM cloner"
     
     Write-host $banner
     Write-Host "-------------------------"
+}
+
+#create new Vswitch//portgroup
+function New-Network() {
+$config = Get-Content -Path "config.json" | ConvertFrom-Json
+$vcenter = $config.vSphereAddress
+$switchname = Read-Host "Enter the name you would like to name your virtual switch:"
+$virtualswitch = New-VirtualSwitch -VMHOST $vcenter -Name $switchname
+
+$portgroupname = Read-Host "Enter the name of your new port group:"
+$switchgroup = New-VirtualPortGroup -VirtualSwitch $virtualswitch -Name $portgroupname
+
+Get-virtualswitch | Select-Object -ExpandProperty Name
+
+}
+
+
+#Utilized chatgpt for the ip variable, specifically the where-object 
+function Get-IP() {
+
+    $config = Get-Content -Path "config.json" | ConvertFrom-Json
+    Write-Host "Available virtual machines:"
+    Write-Host "-------------------------"
+    Get-VM | Select-Object -ExpandProperty Name
+
+    $vmName = Read-Host "Enter the VM youd like to get IP/MAC of:"
+    $vm = Get-VM -Name $vmName -ErrorAction Stop
+
+    Get-Networkadapter -VM $vm | Select-Object -ExpandProperty MacAddress
+    $guest = $vm | Get-VMGuest
+    $ip = $guest.ipaddress | Where-object {$_ -match '\d+\.\d+\.\d+\.\d+'}  #d+ = digit, \.\ is syntax from the ipv4
+    Write-host $ip
+    write-host $vm 
+}
+
+
+function poweron () {
+# Prompt user to power on the new virtual machine
+$powerOn = Read-Host "Do you want to power on the new virtual machine? (yes or no)"
+if ($powerOn -eq "yes") {
+    Start-VM -VM $newvm -ErrorAction Stop
+}
 }
 
 function 480cloner() {
@@ -71,31 +123,6 @@ function 480cloner() {
             $linkedvm | Remove-VM -ErrorAction Stop
         }
 
-        # Display available network adapters for the new virtual machine
-        Write-Host "Available network adapters for $($newvm.Name):"
-        Write-Host "-------------------------"
-        Get-NetworkAdapter -VM $newvm
-
-       # Prompt user to change network adapter
-$changeNetworkAdapter = Read-Host "Do you want to change network adapter settings for the new virtual machine? (yes or no)"
-if ($changeNetworkAdapter -eq "yes") {
-    # Display available network adapters for the new virtual machine
-    Write-Host "Available network adapters for $($newvm.Name):"
-    Write-Host "-------------------------"
-    Get-NetworkAdapter -VM $newvm
-
-    # Prompt user to select network adapter by name
-    $adapterName = Read-Host "Enter the name of the network adapter you want to modify:"
-    $adapter = $newvm | Get-NetworkAdapter -Name $adapterName
-
-    if ($adapter -eq $null) {
-        Write-Host "Network adapter with name $adapterName not found."
-    } else {
-        # Modify network adapter settings
-        # Example: Set-NetworkAdapter -NetworkAdapter $adapter -NetworkName "NewNetwork"
-        Write-Host "Modify network adapter settings for $($adapter.Name)"
-    }
-}
         # Prompt user to power on the new virtual machine
         $powerOn = Read-Host "Do you want to power on the new virtual machine? (yes or no)"
         if ($powerOn -eq "yes") {
@@ -107,3 +134,6 @@ if ($changeNetworkAdapter -eq "yes") {
         exit 1
     }
 }
+
+
+
