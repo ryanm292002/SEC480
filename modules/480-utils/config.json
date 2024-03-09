@@ -1,0 +1,5 @@
+{
+  "vCenterServer": "vcenter.ryan.local",
+  "vSphereAddress": "192.168.7.25",
+  "snapshotName": "Base"
+}
